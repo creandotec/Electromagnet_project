@@ -205,11 +205,11 @@ int main(int argc, char **argv){
                   while (set_frequency <= t_set_frequency)
                   {
                     set_frequency += secure_factor;
-                    printf("Trying with increase");
+                    //printf("Trying with increase");
                     set_high_period = calculatePeriods(set_frequency, 1);
                     real_frequency = calculateRealFrequency(set_high_period);
                     //printf("%f\n", real_frequency);
-                    set_frequency = (int)(real_frequency + 0.5);
+                    set_frequency = round(real_frequency + 0.5);
                     secure_factor += 1;
                   }
 
@@ -241,9 +241,39 @@ int main(int argc, char **argv){
             b2_on = 1;
             if(set_frequency > 1){
               set_frequency -= 1;
+
+              int t_set_frequency = set_frequency;
+              int secure_factor = 1;
+              if(set_frequency >= 250000){
+                set_frequency = 166668;
+              }
+              else if(set_frequency >= 166667){
+                set_frequency = 125001;
+              }
+              else if(set_frequency>=100001){
+                set_frequency =100001;
+              }
+              while (set_frequency >= t_set_frequency)
+              {
+
+                //printf("Trying with decrease, %u\n", secure_factor);
+                //printf("%u\n", set_frequency);
+                if(secure_factor < set_frequency){
+                  set_frequency -= secure_factor;
+                }
+                else{
+                  set_frequency = 1;
+                }
+                set_high_period = calculatePeriods(set_frequency, 0);
+                real_frequency = calculateRealFrequency(set_high_period);
+                set_frequency = round(real_frequency);
+                secure_factor += 1;
+              }
+              /*
               set_high_period = calculatePeriods(set_frequency, 0);
               real_frequency = calculateRealFrequency(set_high_period);
               set_frequency = (int)(real_frequency);
+              */
               printf("frequency = %uHz        pwm = %u%%\n", set_frequency, data*10);
             }
           }
@@ -273,14 +303,29 @@ int main(int argc, char **argv){
                 {
                   int t_set_frequency = set_frequency;
                   int secure_factor = 1;
+                  if(set_frequency >= 250000){
+                    set_frequency = 166668;
+                  }
+                  else if(set_frequency >= 166667){
+                    set_frequency = 125001;
+                  }
+                  else if(set_frequency>=100001){
+                    set_frequency =100001;
+                  }
                   while (set_frequency >= t_set_frequency)
                   {
-                    printf("Trying with decrease");
-                    set_frequency -= secure_factor;
+                    //printf("Trying with decrease, %u\n", secure_factor);
+                    //printf("%u\n", set_frequency);
+                    if(secure_factor < set_frequency){
+                      set_frequency -= secure_factor;
+                    }
+                    else{
+                      set_frequency = 1;
+                    }
                     set_high_period = calculatePeriods(set_frequency, 0);
                     real_frequency = calculateRealFrequency(set_high_period);
                     set_frequency = (int)(real_frequency);
-                    secure_factor -= 1;
+                    secure_factor += 1;
                   }
                   printf("frequency = %uHz        pwm = %u%%\n", set_frequency, data*10);
                 }
@@ -359,10 +404,10 @@ int calculatePeriods(int frequency, uint8_t direction){
   real_period = real_period/2.0;
   real_period = real_period  * 1000000.0;
   if(direction == 1){
-    high_period = (int)(real_period+0.5);
+    high_period = round(real_period+0.5);
   }
   else{
-    high_period = (int)(real_period-0.5);
+    high_period = round(real_period-0.5);
   }
 
   return high_period;
