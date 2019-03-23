@@ -84,6 +84,9 @@ int main(int argc, char **argv){
   uint8_t p_button_3_value;
   uint8_t p_button_4_value;
 
+  int b1_fast_increment = 10000;
+  int b2_fast_increment = 10000;
+  int b1_fast_increment_factor = 2;
   int b1_debounce_counter = 0;
   int b2_debounce_counter = 0;
   int b3_debounce_counter = 0;
@@ -174,6 +177,21 @@ int main(int argc, char **argv){
             if(b1_debounce_counter >= DEBOUNCE_TIME * 50){
               if(b1_debounce_counter >= (DEBOUNCE_TIME * 50) + 50000){
                 b1_debounce_counter = DEBOUNCE_TIME * 50;
+
+                if(b1_fast_increment > 1000)
+                {
+                  b1_fast_increment -= 1000;
+                }else{
+
+                  b1_fast_increment = 5000;
+                  b1_fast_increment_factor *= 2;
+
+                  if(b1_fast_increment_factor > 100){
+                    b1_fast_increment_factor = 100;
+                  }
+                  set_frequency += b1_fast_increment_factor;
+                }
+
                 if(set_frequency < 250000){
                   int t_set_frequency = set_frequency;
                   int secure_factor = 1;
@@ -190,6 +208,9 @@ int main(int argc, char **argv){
 
                   printf("frequency = %uHz        pwm = %u%%\n", set_frequency, data*10);
                 }
+                else{
+                  set_frequency = 250000;
+                }
               }
             }
           }
@@ -198,6 +219,8 @@ int main(int argc, char **argv){
         b1_debounce_counter = 0;
       }
     }else{
+      b1_fast_increment = 10000;
+      b1_fast_increment_factor = 1;
       b1_debounce_counter = 0;
       b1_on = 0;
     }
