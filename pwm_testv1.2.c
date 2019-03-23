@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#include <time.h>
 
 #define PIN           RPI_GPIO_P1_12
 #define PWM_CHANNEL   0
@@ -85,6 +84,12 @@ int main(int argc, char **argv){
   uint8_t p_button_3_value;
   uint8_t p_button_4_value;
 
+  int b1_fast_increment = 10000;
+  int b2_fast_decrement = 10000;
+
+  int b1_fast_increment_factor = 2;
+  int b2_fast_decrement_factor = 2;
+
   int b1_debounce_counter = 0;
   int b2_debounce_counter = 0;
   int b3_debounce_counter = 0;
@@ -95,15 +100,6 @@ int main(int argc, char **argv){
   uint8_t b3_on = 0;
   uint8_t b4_on = 0;
 
-  int b1_fast_increment = 50000;
-  int b2_fast_decrement = 50000;
-
-  time_t start_t;
-  time_t end_t;
-  double diff_t;
-
-  uint8_t b1_pressed_first = 0;
-  uint8_t b2_pressed_first = 0;
   bcm2835_pwm_set_data(PWM_CHANNEL, data);
 
   bcm2835_gpio_write(OUTPUT_A, HIGH);
@@ -172,10 +168,6 @@ int main(int argc, char **argv){
         b1_debounce_counter += 1;
         if(b1_debounce_counter >= DEBOUNCE_TIME){
           if(b1_on == 0){
-            time(&end_t);
-
-            diff_t = difftime(end_t, start_t);
-            printf("Difference = %f\n", diff_t);
             b1_on = 1;
             if(set_frequency < 250000){
               set_frequency += 1;
@@ -186,21 +178,34 @@ int main(int argc, char **argv){
             }
           }else{
             if(b1_debounce_counter >= DEBOUNCE_TIME * 50){
-              if(b1_debounce_counter >= (DEBOUNCE_TIME * 50) + b1_fast_increment){
+              if(b1_debounce_counter >= (DEBOUNCE_TIME * 50) + 50000){
                 b1_debounce_counter = DEBOUNCE_TIME * 50;
+
                 if(b1_fast_increment > 1000)
                 {
                   b1_fast_increment -= 1000;
                 }else{
-                  b1_fast_increment = 1000;
+
+                  b1_fast_increment = 5000;
+                  b1_fast_increment_factor *= 2;
+
+                  if(b1_fast_increment_factor > 100){
+                    b1_fast_increment_factor = 100;
+                  }
+                  set_frequency += b1_fast_increment_factor;
+
+                  if(set_frequency > 249000){
+                    set_frequency = 249000;
+                  }
                 }
+
                 if(set_frequency < 250000){
                   int t_set_frequency = set_frequency;
                   int secure_factor = 1;
                   while (set_frequency <= t_set_frequency)
                   {
                     set_frequency += secure_factor;
-
+                    printf("Trying with increase");
                     set_high_period = calculatePeriods(set_frequency, 1);
                     real_frequency = calculateRealFrequency(set_high_period);
                     //printf("%f\n", real_frequency);
@@ -210,6 +215,9 @@ int main(int argc, char **argv){
 
                   printf("frequency = %uHz        pwm = %u%%\n", set_frequency, data*10);
                 }
+                else{
+                  set_frequency = 250000;
+                }
               }
             }
           }
@@ -218,13 +226,10 @@ int main(int argc, char **argv){
         b1_debounce_counter = 0;
       }
     }else{
+      b1_fast_increment = 10000;
+      b1_fast_increment_factor = 1;
       b1_debounce_counter = 0;
       b1_on = 0;
-      if(p_button_1_value == 1){
-        time(&start_t);
-      }
-      b1_fast_increment = 50000;
-
     }
 
     //Check if button 1 is pressed
@@ -244,21 +249,34 @@ int main(int argc, char **argv){
           }
           else{
             if(b2_debounce_counter >= DEBOUNCE_TIME * 50){
-              if(b2_debounce_counter >= (DEBOUNCE_TIME * 50) + b2_fast_decrement){
+              if(b2_debounce_counter >= (DEBOUNCE_TIME * 50) + 50000){
                 b2_debounce_counter = DEBOUNCE_TIME * 50;
-                if(b2_fast_decrement > 1000){
-                    b2_fast_decrement -= 1000;
+
+                if(b2_fast_decrement > 1000)
+                {
+                  b2_fast_decrement -= 1000;
                 }else{
-                  b2_fast_decrement = 1000;
+
+                  b2_fast_decrement = 5000;
+                  b2_fast_decrement_factor *= 2;
+
+                  if(b2_fast_decrement_factor > 100){
+                    b2_fast_decrement_factor = 100;
+                  }
+                  set_frequency -= b2_fast_decrement_factor;
+                  if(set_frequency < 2){
+                    set_frequency = 2;
+                  }
                 }
 
-                if(set_frequency > 1)
+                if(set_frequency > 2)
                 {
                   int t_set_frequency = set_frequency;
                   int secure_factor = 1;
                   while (set_frequency >= t_set_frequency)
                   {
-                    set_frequency -= 1;
+                    printf("Trying with decrease");
+                    set_frequency -= secure_factor;
                     set_high_period = calculatePeriods(set_frequency, 0);
                     real_frequency = calculateRealFrequency(set_high_period);
                     set_frequency = (int)(real_frequency);
@@ -274,9 +292,13 @@ int main(int argc, char **argv){
         b2_debounce_counter = 0;
       }
     }else{
+
+      b2_fast_decrement = 10000;
+      b2_fast_decrement_factor = 1;
+
       b2_debounce_counter = 0;
       b2_on = 0;
-      b2_fast_decrement = 50000;
+
     }
 
     //Check if button 1 is pressed
