@@ -2,7 +2,9 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 #include <math.h>
+#include <stdbool.h>
 
 #define PIN           RPI_GPIO_P1_12
 #define PWM_CHANNEL   0
@@ -100,10 +102,18 @@ int main(int argc, char **argv){
   uint8_t b3_on = 0;
   uint8_t b4_on = 0;
 
+  bool monitoring_up = false;
+  bool auto_up = false;
+  time_t time_up_1;
+  time_t time_up_2;
+
   bcm2835_pwm_set_data(PWM_CHANNEL, data);
 
   bcm2835_gpio_write(OUTPUT_A, HIGH);
   bcm2835_gpio_write(OUTPUT_B, LOW);
+
+  bool up_pressed_first = false;
+  bool down_pressed_first = false;
 
   printf("frequency = %uHz        pwm = %u%%\n", set_frequency, data*10);
   (void) signal(SIGINT, INThandler);
@@ -169,6 +179,30 @@ int main(int argc, char **argv){
         if(b1_debounce_counter >= DEBOUNCE_TIME){
           if(b1_on == 0){
             b1_on = 1;
+            if(monitoring_up == 1){
+              double elapsed_time;
+              time(&time_up_2);
+              monitoring_up = false;
+              elapsed_time = time_up_2 - time_up_1;
+              if(elapsed_time < 0.5){
+                auto_up = true;
+              }
+              else if(elapsed_time < 1.0){
+                auto_up = true;
+                printf("This was printed here\n");
+              }
+              printf("time difference = %f\n", elapsed_time);
+            }
+            else{
+              if(auto_up == true){
+                printf("Auto up disabled\n");
+                auto_up = false;
+              }
+              else{
+                monitoring_up = true;
+                time(&time_up_1);
+              }
+            }
             if(set_frequency < 250000){
               set_frequency += 1;
               set_high_period = calculatePeriods(set_frequency, 1);
